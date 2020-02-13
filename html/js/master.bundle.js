@@ -160,6 +160,10 @@ var lineGeneratorDashed = d3.line().x(function (d) {
 	return yScale(dashValue(d));
 }).curve(d3.curveCardinal);
 
+var defs = svg.append("defs");
+var filter = defs.append("filter").attr("id", "places-blur").attr("height", "150%");
+filter.append("feGaussianBlur").attr("in", "SourceAlpha").attr("stdDeviation", 4).attr("result", "blur");
+
 var parseDate = d3.timeParse("%m/%d/%Y");
 
 var render = function render(data) {
@@ -172,12 +176,23 @@ var render = function render(data) {
 	})]);
 
 	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
-	var xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(d3.timeFormat("%B")).tickPadding(15);
-	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + innerHeight + ')').attr('class', 'xAxis');
 
-	var yAxis = d3.axisLeft(yScale).tickSize(-innerWidth).tickPadding(15);
-	var yAxisG = g.append('g').call(yAxis);
-	yAxisG.selectAll('.domain').remove();
+	g.selectAll("text").data(data).enter().append("text").attr('x', function (d) {
+		return xScale(mainValue(d)) - 10;
+	}).attr('opacity', 0).text(function (d) {
+		return d.percent + '%';
+	}).transition().delay(function (d, i) {
+		return i * 400;
+	}).duration(1000).ease(d3.easeSin).attr('opacity', 1).attr('y', innerHeight + 20);
+
+	var xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(d3.timeFormat("%b")).tickPadding(15);
+	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + (innerHeight + 10) + ')').attr('class', 'xAxis');
+
+	// const yAxis = d3.axisLeft(yScale)
+	// 	.tickSize(-innerWidth)
+	// 	.tickPadding(15);
+	// const yAxisG = g.append('g').call(yAxis);
+	// yAxisG.selectAll('.domain').remove();
 
 	var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGenerator(data));
 
@@ -185,19 +200,21 @@ var render = function render(data) {
 
 	path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(5000).ease(d3.easeQuadInOut).attr("stroke-dashoffset", 0);
 
-	g.selectAll("rect").data(data).enter().append("rect").attr('width', 2).attr('y', function (d) {
+	g.selectAll("rect").data(data).enter().append("rect").style("filter", "url(#places-blur)").attr('width', 2).attr('y', function (d) {
 		return yScale(yValue(d));
 	}).attr('x', function (d) {
 		return xScale(mainValue(d));
 	}).transition().delay(function (d, i) {
 		return i * 400;
-	}).duration(1000).ease(d3.easeSin).attr('height', 500);
+	}).duration(1000).ease(d3.easeSin).attr('height', function (d) {
+		return innerHeight - yScale(yValue(d));
+	});
 
-	g.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('cy', height - 25).attr('opacity', 0).attr('cx', function (d) {
+	g.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('opacity', 0).attr('cx', function (d) {
 		return xScale(mainValue(d));
 	}).transition().delay(function (d, i) {
 		return i * 400;
-	}).duration(1000).ease(d3.easeSin).attr('opacity', 1);
+	}).duration(1000).ease(d3.easeSin).attr('opacity', 1).attr('cy', innerHeight);
 
 	if (data[0].dashed) {
 		var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGeneratorDashed(data));

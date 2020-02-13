@@ -81,16 +81,223 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./src/main.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = 0);
 /******/ })
 /************************************************************************/
-/******/ ({
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
 
-/***/ "./node_modules/jquery/dist/jquery.js":
-/*!********************************************!*\
-  !*** ./node_modules/jquery/dist/jquery.js ***!
-  \********************************************/
-/*! no static exports found */
+"use strict";
+
+
+var _oneYearGraph = __webpack_require__(1);
+
+var oneYearGraph = _interopRequireWildcard(_oneYearGraph);
+
+var _verticalBar = __webpack_require__(2);
+
+var verticalBar = _interopRequireWildcard(_verticalBar);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+// ----- Main app file
+var $ = __webpack_require__(3);
+
+window.$ = $;
+window.jQuery = $;
+window.app = {};
+
+// ----- Require modules here
+// import { hrl, stats, WB } from './js/common/common.js';
+
+
+// ----- Path to main SCSS file
+// import * as css from './scss/style.scss';
+
+// ----- Call modules here
+$(document).ready(function () {
+    // main();
+});
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var svg = d3.select('svg').attr('width', 900).attr('height', 200);
+
+var width = +svg.attr('width'),
+    height = +svg.attr('height'),
+    margin = { top: 20, right: 0, bottom: 50, left: 30 },
+    innerWidth = width - margin.left - margin.right,
+    innerHeight = height - margin.top - margin.bottom,
+    mainValue = function mainValue(d) {
+	return d.month;
+},
+    dashValue = function dashValue(d) {
+	return d.dashed;
+},
+    yValue = function yValue(d) {
+	return d.percent;
+};
+
+var xScale = d3.scaleTime().range([0, innerWidth - 30]);
+
+var yScale = d3.scaleLinear().range([innerHeight, 0]).nice();
+
+var lineGenerator = d3.line().x(function (d) {
+	return xScale(mainValue(d));
+}).y(function (d) {
+	return yScale(yValue(d));
+}).curve(d3.curveCardinal);
+
+var lineGeneratorDashed = d3.line().x(function (d) {
+	return xScale(mainValue(d));
+}).y(function (d) {
+	return yScale(dashValue(d));
+}).curve(d3.curveCardinal);
+
+var parseDate = d3.timeParse("%m/%d/%Y");
+
+var render = function render(data) {
+	xScale.domain(d3.extent(data, mainValue)).nice(data.length);
+
+	yScale.domain([d3.min(data, function (d) {
+		return Math.min(yValue(d), dashValue(d)) - 10;
+	}), d3.max(data, function (d) {
+		return Math.max(yValue(d), dashValue(d));
+	})]);
+
+	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+	var xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(d3.timeFormat("%B")).tickPadding(15);
+	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + innerHeight + ')').attr('class', 'xAxis');
+
+	var yAxis = d3.axisLeft(yScale).tickSize(-innerWidth).tickPadding(15);
+	var yAxisG = g.append('g').call(yAxis);
+	yAxisG.selectAll('.domain').remove();
+
+	var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGenerator(data));
+
+	var totalLength = path.node().getTotalLength();
+
+	path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(5000).ease(d3.easeQuadInOut).attr("stroke-dashoffset", 0);
+
+	g.selectAll("rect").data(data).enter().append("rect").attr('width', 2).attr('y', function (d) {
+		return yScale(yValue(d));
+	}).attr('x', function (d) {
+		return xScale(mainValue(d));
+	}).transition().delay(function (d, i) {
+		return i * 400;
+	}).duration(1000).ease(d3.easeSin).attr('height', 500);
+
+	g.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('cy', height - 25).attr('opacity', 0).attr('cx', function (d) {
+		return xScale(mainValue(d));
+	}).transition().delay(function (d, i) {
+		return i * 400;
+	}).duration(1000).ease(d3.easeSin).attr('opacity', 1);
+
+	if (data[0].dashed) {
+		var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGeneratorDashed(data));
+
+		var totalLength = path.node().getTotalLength();
+		var dashing = "10, 10";
+
+		var dashLength = dashing.split(/[\s,]/).map(function (a) {
+			return parseFloat(a) || 0;
+		}).reduce(function (a, b) {
+			return a + b;
+		});
+
+		var dashCount = Math.ceil(totalLength / dashLength);
+
+		var newDashes = new Array(dashCount).join(dashing + " ");
+
+		var dashArray = newDashes + " 0, " + totalLength;
+
+		path.attr("stroke-dashoffset", totalLength).attr("stroke-dasharray", dashArray).transition().duration(3000).attr("stroke-dashoffset", 0);
+	}
+};
+
+d3.csv('rails.csv').then(function (data) {
+	data.forEach(function (d) {
+		d.percent = +d.percent;
+		d.dashed = +d.dashed;
+		d.month = parseDate(d.month);
+
+		// d.month = new Date(d.month);
+	});
+	render(data);
+});
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var svg = d3.select('.verticalBar').attr('width', 900).attr('height', 500);
+
+var width = +svg.attr('width'),
+    height = +svg.attr('height');
+
+var render = function render(data) {
+	var xValue = function xValue(d) {
+		return d.population;
+	};
+	var yValue = function yValue(d) {
+		return d.country;
+	};
+	var margin = { top: 20, right: 20, bottom: 50, left: 80 };
+	var innerWidth = width - margin.left - margin.right;
+	var innerHeight = height - margin.top - margin.bottom;
+
+	var xScale = d3.scaleLinear().domain([0, d3.max(data, xValue)]).range([0, innerWidth]);
+
+	var xAxisTickFormat = function xAxisTickFormat(number) {
+		return d3.format('.3s')(number).replace("G", "B");
+	};
+
+	var xAxis = d3.axisBottom(xScale).tickFormat(xAxisTickFormat).ticks(15).tickSize(-innerHeight);
+
+	var yScale = d3.scaleBand().domain(data.map(yValue)).range([0, innerHeight]).paddingInner(0.05);
+
+	var yAxis = d3.axisLeft(yScale);
+
+	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+
+	g.append('g').call(yAxis) //  yAxis(g.append('g'));
+	.selectAll('.domain, g>line').remove();
+
+	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + innerHeight + ')');
+
+	xAxisG.select('.domain').remove();
+
+	xAxisG.append('text').attr('fill', 'black').attr('y', 50).attr('x', innerWidth / 2).text('Population');
+
+	g.selectAll('rect').data(data).enter().append('rect').attr('y', function (d) {
+		return yScale(yValue(d));
+	})
+	// .attr('width', d => xScale(xValue(d)))
+	.attr('height', yScale.bandwidth()).transition().duration(2000).attr('width', function (d) {
+		return xScale(xValue(d));
+	});
+
+	g.append('text').attr('y', -10).text('Top 10 Most Populous Countries');
+};
+
+d3.csv('countries.csv').then(function (data) {
+	data.forEach(function (d) {
+		d.population = +d.population * 1000;
+	});
+	render(data);
+});
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -10694,234 +10901,5 @@ return jQuery;
 } );
 
 
-/***/ }),
-
-/***/ "./src/js/oneYearGraph.js":
-/*!********************************!*\
-  !*** ./src/js/oneYearGraph.js ***!
-  \********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var svg = d3.select('svg').attr('width', 900).attr('height', 200);
-
-var width = +svg.attr('width'),
-    height = +svg.attr('height'),
-    margin = { top: 20, right: 0, bottom: 50, left: 30 },
-    innerWidth = width - margin.left - margin.right,
-    innerHeight = height - margin.top - margin.bottom,
-    mainValue = function mainValue(d) {
-	return d.month;
-},
-    dashValue = function dashValue(d) {
-	return d.dashed;
-},
-    yValue = function yValue(d) {
-	return d.percent;
-};
-
-var xScale = d3.scaleTime().range([0, innerWidth - 30]);
-
-var yScale = d3.scaleLinear().range([innerHeight, 0]).nice();
-
-var lineGenerator = d3.line().x(function (d) {
-	return xScale(mainValue(d));
-}).y(function (d) {
-	return yScale(yValue(d));
-}).curve(d3.curveCardinal);
-
-var lineGeneratorDashed = d3.line().x(function (d) {
-	return xScale(mainValue(d));
-}).y(function (d) {
-	return yScale(dashValue(d));
-}).curve(d3.curveCardinal);
-
-var parseDate = d3.timeParse("%m/%d/%Y");
-
-var render = function render(data) {
-	xScale.domain(d3.extent(data, mainValue)).nice(data.length);
-
-	yScale.domain([d3.min(data, function (d) {
-		return Math.min(yValue(d), dashValue(d)) - 10;
-	}), d3.max(data, function (d) {
-		return Math.max(yValue(d), dashValue(d));
-	})]);
-
-	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
-	var xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(d3.timeFormat("%B")).tickPadding(15);
-	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + innerHeight + ')').attr('class', 'xAxis');
-
-	var yAxis = d3.axisLeft(yScale).tickSize(-innerWidth).tickPadding(15);
-	var yAxisG = g.append('g').call(yAxis);
-	yAxisG.selectAll('.domain').remove();
-
-	var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGenerator(data));
-
-	var totalLength = path.node().getTotalLength();
-
-	path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(5000).ease(d3.easeQuadInOut).attr("stroke-dashoffset", 0);
-
-	g.selectAll("rect").data(data).enter().append("rect").attr('width', 2).attr('y', function (d) {
-		return yScale(yValue(d));
-	}).attr('x', function (d) {
-		return xScale(mainValue(d));
-	}).transition().delay(function (d, i) {
-		return i * 400;
-	}).duration(1000).ease(d3.easeSin).attr('height', 500);
-
-	g.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('cy', height - 25).attr('opacity', 0).attr('cx', function (d) {
-		return xScale(mainValue(d));
-	}).transition().delay(function (d, i) {
-		return i * 400;
-	}).duration(1000).ease(d3.easeSin).attr('opacity', 1);
-
-	if (data[0].dashed) {
-		var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGeneratorDashed(data));
-
-		var totalLength = path.node().getTotalLength();
-		var dashing = "10, 10";
-
-		var dashLength = dashing.split(/[\s,]/).map(function (a) {
-			return parseFloat(a) || 0;
-		}).reduce(function (a, b) {
-			return a + b;
-		});
-
-		var dashCount = Math.ceil(totalLength / dashLength);
-
-		var newDashes = new Array(dashCount).join(dashing + " ");
-
-		var dashArray = newDashes + " 0, " + totalLength;
-
-		path.attr("stroke-dashoffset", totalLength).attr("stroke-dasharray", dashArray).transition().duration(3000).attr("stroke-dashoffset", 0);
-	}
-};
-
-d3.csv('rails.csv').then(function (data) {
-	data.forEach(function (d) {
-		d.percent = +d.percent;
-		d.dashed = +d.dashed;
-		d.month = parseDate(d.month);
-
-		// d.month = new Date(d.month);
-	});
-	render(data);
-});
-
-/***/ }),
-
-/***/ "./src/js/verticalBar.js":
-/*!*******************************!*\
-  !*** ./src/js/verticalBar.js ***!
-  \*******************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var svg = d3.select('.verticalBar').attr('width', 900).attr('height', 500);
-
-var width = +svg.attr('width'),
-    height = +svg.attr('height');
-
-var render = function render(data) {
-	var xValue = function xValue(d) {
-		return d.population;
-	};
-	var yValue = function yValue(d) {
-		return d.country;
-	};
-	var margin = { top: 20, right: 20, bottom: 50, left: 80 };
-	var innerWidth = width - margin.left - margin.right;
-	var innerHeight = height - margin.top - margin.bottom;
-
-	var xScale = d3.scaleLinear().domain([0, d3.max(data, xValue)]).range([0, innerWidth]);
-
-	var xAxisTickFormat = function xAxisTickFormat(number) {
-		return d3.format('.3s')(number).replace("G", "B");
-	};
-
-	var xAxis = d3.axisBottom(xScale).tickFormat(xAxisTickFormat).ticks(15).tickSize(-innerHeight);
-
-	var yScale = d3.scaleBand().domain(data.map(yValue)).range([0, innerHeight]).paddingInner(0.05);
-
-	var yAxis = d3.axisLeft(yScale);
-
-	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
-
-	g.append('g').call(yAxis) //  yAxis(g.append('g'));
-	.selectAll('.domain, g>line').remove();
-
-	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + innerHeight + ')');
-
-	xAxisG.select('.domain').remove();
-
-	xAxisG.append('text').attr('fill', 'black').attr('y', 50).attr('x', innerWidth / 2).text('Population');
-
-	g.selectAll('rect').data(data).enter().append('rect').attr('y', function (d) {
-		return yScale(yValue(d));
-	})
-	// .attr('width', d => xScale(xValue(d)))
-	.attr('height', yScale.bandwidth()).transition().duration(2000).attr('width', function (d) {
-		return xScale(xValue(d));
-	});
-
-	g.append('text').attr('y', -10).text('Top 10 Most Populous Countries');
-};
-
-d3.csv('countries.csv').then(function (data) {
-	data.forEach(function (d) {
-		d.population = +d.population * 1000;
-	});
-	render(data);
-});
-
-/***/ }),
-
-/***/ "./src/main.js":
-/*!*********************!*\
-  !*** ./src/main.js ***!
-  \*********************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _oneYearGraph = __webpack_require__(/*! ./js/oneYearGraph.js */ "./src/js/oneYearGraph.js");
-
-var oneYearGraph = _interopRequireWildcard(_oneYearGraph);
-
-var _verticalBar = __webpack_require__(/*! ./js/verticalBar.js */ "./src/js/verticalBar.js");
-
-var verticalBar = _interopRequireWildcard(_verticalBar);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-// ----- Main app file
-var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery.js");
-
-window.$ = $;
-window.jQuery = $;
-window.app = {};
-
-// ----- Require modules here
-// import { hrl, stats, WB } from './js/common/common.js';
-
-
-// ----- Path to main SCSS file
-// import * as css from './scss/style.scss';
-
-// ----- Call modules here
-$(document).ready(function () {
-    // main();
-});
-
 /***/ })
-
-/******/ });
-//# sourceMappingURL=master.bundle.js.map
+/******/ ]);

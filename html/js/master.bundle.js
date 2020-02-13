@@ -127,7 +127,7 @@ $(document).ready(function () {
 "use strict";
 
 
-var svg = d3.select('svg').attr('width', 900).attr('height', 200);
+var svg = d3.select('svg').attr('height', 200).attr('width', 900);
 
 var width = +svg.attr('width'),
     height = +svg.attr('height'),
@@ -160,9 +160,14 @@ var lineGeneratorDashed = d3.line().x(function (d) {
 	return yScale(dashValue(d));
 }).curve(d3.curveCardinal);
 
-var defs = svg.append("defs");
-var filter = defs.append("filter").attr("id", "places-blur").attr("height", "150%");
-filter.append("feGaussianBlur").attr("in", "SourceAlpha").attr("stdDeviation", 4).attr("result", "blur");
+// var defs = svg.append("defs");
+// var filter = defs.append("filter")
+//     .attr("id", "places-blur")
+//     .attr("height", "150%");
+// filter.append("feGaussianBlur")
+//     .attr("in", "SourceAlpha")
+//     .attr("stdDeviation", 50)
+//     .attr("result", "blur");
 
 var parseDate = d3.timeParse("%m/%d/%Y");
 
@@ -177,14 +182,6 @@ var render = function render(data) {
 
 	var g = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
 
-	g.selectAll("text").data(data).enter().append("text").attr('x', function (d) {
-		return xScale(mainValue(d)) - 10;
-	}).attr('opacity', 0).text(function (d) {
-		return d.percent + '%';
-	}).transition().delay(function (d, i) {
-		return i * 400;
-	}).duration(1000).ease(d3.easeSin).attr('opacity', 1).attr('y', innerHeight + 20);
-
 	var xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(d3.timeFormat("%b")).tickPadding(15);
 	var xAxisG = g.append('g').call(xAxis).attr('transform', 'translate(0, ' + (innerHeight + 10) + ')').attr('class', 'xAxis');
 
@@ -194,13 +191,15 @@ var render = function render(data) {
 	// const yAxisG = g.append('g').call(yAxis);
 	// yAxisG.selectAll('.domain').remove();
 
-	var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGenerator(data));
+	var path = g.append('path').attr('class', 'line-path').attr("ry", 20).attr("rx", 20).attr('d', lineGenerator(data));
 
 	var totalLength = path.node().getTotalLength();
 
 	path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(5000).ease(d3.easeQuadInOut).attr("stroke-dashoffset", 0);
 
-	g.selectAll("rect").data(data).enter().append("rect").style("filter", "url(#places-blur)").attr('width', 2).attr('y', function (d) {
+	g.append('line').style("stroke", 'black').attr('x1', 0).attr('y1', yScale(89.6)).attr('y2', yScale(89.6)).transition().duration(1000).attr('x2', innerWidth - margin.left);
+
+	g.selectAll("rect").data(data).enter().append("rect").attr('width', 2).attr('y', function (d) {
 		return yScale(yValue(d));
 	}).attr('x', function (d) {
 		return xScale(mainValue(d));
@@ -210,17 +209,46 @@ var render = function render(data) {
 		return innerHeight - yScale(yValue(d));
 	});
 
-	g.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('opacity', 0).attr('cx', function (d) {
+	// const blured = svg.append('g')
+	// 	.attr('transform', `translate(${margin.left}, ${margin.top})`);
+	//    blured.selectAll("rect")
+	// 	.data(data)
+	// 	.enter().append("rect")
+	//      	.style("filter","url(#places-blur)")
+	// 	.attr('width', 64)
+	// 	.attr('y', d => yScale(yValue(d)))
+	// 	.attr('x', d => xScale(mainValue(d)))
+	// 	.attr('height', d => innerHeight - yScale(yValue(d)))
+	// 	.attr('opacity', 0)
+	//     .transition()
+	//     	.delay(function(d, i) { return i * 400; })
+	//     	.duration(1000)
+	// 		.attr('opacity', 1)
+	//        	.ease(d3.easeSin)
+
+
+	var dots = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+	dots.selectAll("dot").data(data).enter().append("circle").attr("r", 5).attr('opacity', 0).attr('cx', function (d) {
 		return xScale(mainValue(d));
 	}).transition().delay(function (d, i) {
 		return i * 400;
 	}).duration(1000).ease(d3.easeSin).attr('opacity', 1).attr('cy', innerHeight);
 
+	var xAxisPercent = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+	xAxisPercent.selectAll("text").data(data).enter().append("text").attr('x', function (d) {
+		return xScale(mainValue(d)) - 10;
+	}).attr('opacity', 0).text(function (d) {
+		return d.percent + '%';
+	}).transition().delay(function (d, i) {
+		return i * 400;
+	}).duration(1000).ease(d3.easeSin).attr('opacity', 1).attr('y', innerHeight + 20);
+
 	if (data[0].dashed) {
-		var path = g.append('path').attr('class', 'line-path').attr("stroke", "steelblue").attr("stroke-width", "2").attr("fill", "none").attr('d', lineGeneratorDashed(data));
+		var path = g.append('path').attr('class', 'dashed-path').attr("fill", "none").attr('d', lineGeneratorDashed(data));
+		// .attr('transform', 'translate(30, 0)');
 
 		var totalLength = path.node().getTotalLength();
-		var dashing = "10, 10";
+		var dashing = "8, 8";
 
 		var dashLength = dashing.split(/[\s,]/).map(function (a) {
 			return parseFloat(a) || 0;

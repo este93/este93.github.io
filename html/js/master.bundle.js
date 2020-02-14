@@ -131,7 +131,7 @@ var svg = d3.select('svg').attr('height', 200).attr('width', 900);
 
 var width = +svg.attr('width'),
     height = +svg.attr('height'),
-    margin = { top: 20, right: 0, bottom: 50, left: 30 },
+    margin = { top: 20, right: 20, bottom: 50, left: 30 },
     innerWidth = width - margin.left - margin.right,
     innerHeight = height - margin.top - margin.bottom,
     mainValue = function mainValue(d) {
@@ -197,7 +197,9 @@ var render = function render(data) {
 
 	path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(5000).ease(d3.easeQuadInOut).attr("stroke-dashoffset", 0);
 
-	g.append('line').style("stroke", 'black').attr('x1', 0).attr('y1', yScale(89.6)).attr('y2', yScale(89.6)).transition().duration(1000).attr('x2', innerWidth - margin.left);
+	var lineGoal = svg.append('g').attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')').attr('class', 'lineGoal');
+	lineGoal.append('line').style("stroke", 'black').attr('x1', 0).attr('y1', yScale(89.6)).attr('y2', yScale(89.6)).transition().duration(1000).attr('x2', innerWidth - 15);
+	lineGoal.append('text').attr('x', innerWidth - 10).attr('y', yScale(89.6) + 2).text('89,6%').attr('opacity', 0).transition().duration(500).delay(700).attr('opacity', 1);
 
 	g.selectAll("rect").data(data).enter().append("rect").attr('width', 2).attr('y', function (d) {
 		return yScale(yValue(d));
@@ -276,6 +278,10 @@ d3.csv('rails.csv').then(function (data) {
 	});
 	render(data);
 });
+
+setTimeout(function () {
+	document.getElementsByClassName('noWidth')[0].classList.add('resized');
+}, 100);
 
 /***/ }),
 /* 2 */

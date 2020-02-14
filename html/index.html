@@ -13,6 +13,9 @@
           font: 11px sans-serif;
           margin: 0;
         }
+        *{
+            box-sizing: border-box;
+        }
         .oneYearGraph .line-path{
             fill: none;
             stroke: black;
@@ -36,14 +39,47 @@
         .oneYearGraph text{
             text-transform: uppercase;
         }
+        .wrap{
+            display: flex;
+            background: darkgrey;
+            padding: 20px;
+        }
+        .wrap .pie{
+            width: 200px;
+            height: 203px;
+            background: grey;
+            padding: 20px;
+        }
+        .noWidth{
+            width: 0;
+            transition: all 1s linear;
+            overflow: hidden;
+            background: grey;
+        }
+        .noWidth.resized{            
+            width: 85%;
+        }
+        .circle{
+            width: 100px;
+            height: 100px;
+            border-radius: 100%;
+            margin: auto;
+            border: 1px solid red;
+        }
     </style>
 </head>
 <body>
-
-    <svg class="oneYearGraph"></svg>
+    <div class="wrap">
+        <div class="pie">
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing</p>
+            <div class="circle"></div>
+        </div>
+        <div class="noWidth">
+            <svg class="oneYearGraph"></svg>      
+        </div>
+        
+    </div>
     <!-- <svg class="verticalBar"></svg> -->
-
-
 
 
     <script src="js/master.bundle.js"></script>   
